@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chuyến Đi: TP.HCM – Đà Lạt</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Sandstone & Muted Teal -->
+    <!-- Application Structure Plan: The application is designed as a "Trip Dashboard" for intuitive, non-linear exploration. It starts with a high-level overview (route diagram, key stats, critical warning), moves to an interactive "Stop Explorer" with filtering (All/Food/Drink), provides a "Journey Visualizer" (Chart.js timeline) to show stop distribution, and concludes with collapsible "Essential Tips". This task-oriented structure is more user-friendly for a traveler than a linear report, allowing quick access to the most relevant information at any stage of their journey. -->
+    <!-- Visualization & Content Choices: 
+        - Route Diagram: Goal: Inform/Orient. Method: HTML/CSS divs styled with Tailwind. Justification: A simple, non-SVG visual to quickly understand the main segments of the trip.
+        - Key Stats Cards: Goal: Inform. Method: HTML/CSS. Justification: Highlights critical trip data (distance, time) for fast consumption.
+        - Stop Explorer: Goal: Organize/Explore. Method: JS-powered filterable cards. Justification: Allows users to dynamically filter stops based on their immediate need (food or rest), which is a core task.
+        - Journey Timeline Chart: Goal: Visualize Distribution. Method: Chart.js Scatter Plot. Justification: Visually represents the report's data on how stops are spread across the 324km journey, directly addressing a key user requirement.
+        - Essential Tips Accordion: Goal: Organize. Method: HTML <details> tag. Justification: Hides detailed text by default, keeping the UI clean and reducing cognitive load.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .bg-warm-beige { background-color: #F5F1E9; }
+        .bg-muted-teal { background-color: #5F9EA0; }
+        .text-teal-dark { color: #008080; }
+        .border-teal-dark { border-color: #008080; }
+        .accent-teal { accent-color: #5F9EA0; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 350px;
+            }
+        }
+        .stop-card {
+            transition: all 0.3s ease-in-out;
+            border-left-width: 4px;
+        }
+        .stop-card.food { border-left-color: #F59E0B; }
+        .stop-card.drink { border-left-color: #3B82F6; }
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        .modal-content {
+            transition: transform 0.25s ease;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-warm-beige shadow-md py-4">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-dark">Cẩm Nang Chuyến Đi</h1>
+            <p class="text-lg text-gray-600 mt-1">TP. Hồ Chí Minh → Đà Lạt (Qua QL55 & Đa Mi)</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="route-overview" class="mb-12">
+            <h2 class="text-2xl font-bold text-center mb-6 text-teal-dark">Tổng Quan Hành Trình</h2>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <p class="text-gray-700 mb-6 text-center">
+                    Đây là kế hoạch chi tiết cho chuyến đi của gia đình bạn, sử dụng tuyến đường tối ưu để tránh kẹt xe và tận hưởng hành trình một cách thoải mái nhất. Dưới đây là các thông tin tổng quan và những lưu ý quan trọng bạn cần nắm rõ trước khi khởi hành.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-8">
+                    <div class="bg-amber-50 p-4 rounded-lg">
+                        <div class="text-3xl font-bold text-amber-600">~324 km</div>
+                        <div class="text-gray-600">Tổng Quãng Đường</div>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <div class="text-3xl font-bold text-blue-600">5-6 giờ</div>
+                        <div class="text-gray-600">Thời Gian Di Chuyển</div>
+                    </div>
+                    <div class="bg-emerald-50 p-4 rounded-lg">
+                        <div class="text-3xl font-bold text-emerald-600">Tối Ưu</div>
+                        <div class="text-gray-600">Tránh Kẹt Xe & Đèo</div>
+                    </div>
+                </div>
+
+                <div id="warning-rest-stop" class="bg-red-50 border-l-4 border-red-500 text-red-800 p-4 rounded-r-lg mb-6" role="alert">
+                    <p class="font-bold">Lưu Ý Cực Kỳ Quan Trọng!</p>
+                    <p class="mt-2">Trạm dừng nghỉ tại Km47+500 trên cao tốc Phan Thiết - Dầu Giây hiện **đang tạm dừng hoạt động** để thi công. Để đảm bảo sự tiện lợi cho gia đình, đặc biệt là các bé nhỏ, bạn **không nên phụ thuộc** vào trạm này. Hãy chủ động lựa chọn các điểm dừng thay thế đã được đề xuất trong cẩm nang này.</p>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold text-lg text-center mb-4">Sơ đồ tuyến đường</h3>
+                    <div class="flex flex-col sm:flex-row items-center justify-center text-xs sm:text-sm text-center">
+                        <div class="flex-1 p-2 bg-gray-200 rounded-l-full">TP.HCM</div>
+                        <div class="font-bold text-gray-400 mx-1">→</div>
+                        <div class="flex-1 p-2 bg-gray-200">Cao Tốc LT-DG</div>
+                        <div class="font-bold text-gray-400 mx-1">→</div>
+                        <div class="flex-1 p-2 bg-gray-200">Cao Tốc DG-PT</div>
+                        <div class="font-bold text-gray-400 mx-1">→</div>
+                        <div class="flex-1 p-2 bg-teal-100 text-teal-800 font-semibold">QL55 (Đa Mi)</div>
+                        <div class="font-bold text-gray-400 mx-1">→</div>
+                        <div class="flex-1 p-2 bg-gray-200">QL20 (Bảo Lộc)</div>
+                        <div class="font-bold text-gray-400 mx-1">→</div>
+                        <div class="flex-1 p-2 bg-gray-200 rounded-r-full">Đà Lạt</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="journey-visualizer" class="mb-12">
+            <h2 class="text-2xl font-bold text-center mb-6 text-teal-dark">Trực Quan Hóa Các Điểm Dừng</h2>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <p class="text-gray-700 mb-6 text-center">
+                    Biểu đồ dưới đây thể hiện sự phân bổ của các điểm dừng chân được đề xuất dọc theo toàn bộ quãng đường 324km. Điều này giúp bạn hình dung rõ hơn về khoảng cách giữa các điểm nghỉ, từ đó lên kế hoạch dừng chân hợp lý cho gia đình. Di chuột qua các điểm để xem tên địa điểm.
+                </p>
+                <div class="chart-container">
+                    <canvas id="journeyChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="stop-explorer" class="mb-12">
+            <h2 class="text-2xl font-bold text-center mb-6 text-teal-dark">Khám Phá Các Điểm Dừng Chân</h2>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                 <p class="text-gray-700 mb-6 text-center">
+                    Đây là danh sách chi tiết các điểm ăn uống và nghỉ ngơi đã được lựa chọn kỹ lưỡng. Sử dụng các nút bên dưới để lọc danh sách theo nhu cầu của bạn. Nhấp vào từng điểm để xem thông tin chi tiết, giúp bạn đưa ra lựa chọn phù hợp nhất tại mỗi chặng của hành trình.
+                </p>
+                <div class="flex justify-center space-x-2 mb-8">
+                    <button data-filter="all" class="filter-btn bg-muted-teal text-white font-semibold py-2 px-4 rounded-full">Tất cả (10)</button>
+                    <button data-filter="food" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full border border-gray-300">Ăn uống (5)</button>
+                    <button data-filter="drink" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full border border-gray-300">Nghỉ ngơi (5)</button>
+                </div>
+
+                <div id="stops-list" class="space-y-4">
+                </div>
+            </div>
+        </section>
+
+        <section id="essential-tips">
+            <h2 class="text-2xl font-bold text-center mb-6 text-teal-dark">Lời Khuyên Hữu Ích</h2>
+            <div class="space-y-4">
+                <details class="bg-white p-4 rounded-lg shadow-lg group">
+                    <summary class="font-semibold text-lg cursor-pointer list-none flex justify-between items-center">
+                        Chuẩn Bị Xe & An Toàn
+                        <span class="text-teal-dark transition-transform duration-300 group-open:rotate-180">▼</span>
+                    </summary>
+                    <p class="text-gray-700 mt-4">Kiểm tra kỹ lốp xe, dầu máy, nước làm mát và hệ thống phanh. Quan trọng nhất, hãy đảm bảo ghế trẻ em được lắp đặt đúng cách và an toàn cho các bé.</p>
+                </details>
+                <details class="bg-white p-4 rounded-lg shadow-lg group">
+                    <summary class="font-semibold text-lg cursor-pointer list-none flex justify-between items-center">
+                        Hành Trang Cho Gia Đình
+                        <span class="text-teal-dark transition-transform duration-300 group-open:rotate-180">▼</span>
+                    </summary>
+                    <p class="text-gray-700 mt-4">Chuẩn bị đủ đồ ăn nhẹ, nước uống, và đồ chơi yêu thích để các bé không bị nhàm chán. Đừng quên một túi y tế nhỏ với các loại thuốc cơ bản như hạ sốt, say xe và đồ dùng cá nhân.</p>
+                </details>
+                 <details class="bg-white p-4 rounded-lg shadow-lg group">
+                    <summary class="font-semibold text-lg cursor-pointer list-none flex justify-between items-center">
+                        Linh Hoạt Trên Đường Đi
+                        <span class="text-teal-dark transition-transform duration-300 group-open:rotate-180">▼</span>
+                    </summary>
+                    <p class="text-gray-700 mt-4">Sử dụng bản đồ trực tuyến để cập nhật tình hình giao thông. Hãy giữ tinh thần thoải mái, tận hưởng cảnh đẹp và biến mỗi khoảnh khắc trên đường thành một kỷ niệm đáng nhớ cho cả gia đình.</p>
+                </details>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-12 py-6 bg-warm-beige text-center text-gray-600">
+        <p>Chúc gia đình bạn có một chuyến đi an toàn và đầy ắp niềm vui!</p>
+    </footer>
+
+    <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
+        <div id="modal-content" class="modal-content bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform scale-95">
+        </div>
+    </div>
+
+    <script>
+        const stopsData = [
+            {
+                id: 1,
+                name: "Trạm dừng chân Long Thành",
+                type: "drink",
+                distance: 45,
+                time: "1 giờ",
+                price: "Giá cao hơn bên ngoài",
+                hours: "24/7 (thường lệ)",
+                rating: "Thường rất đông khách",
+                highlight: "Điểm dừng thiết yếu trên cao tốc, nhà vệ sinh sạch, bãi đậu xe rộng, đa dạng đồ uống.",
+                description: "Đây là điểm dừng chân thiết yếu đầu tiên trên cao tốc, thường là sau khoảng 1-1.5 giờ di chuyển từ TP.HCM. Trạm được trang bị nhà vệ sinh sạch sẽ và có bãi đậu xe rộng lớn, rất thuận tiện. Tuy nhiên, cần lưu ý rằng trạm này thường rất đông khách, đặc biệt vào các dịp lễ. Gia đình nên chuẩn bị tinh thần chờ đợi hoặc chỉ dừng nhanh để giải quyết các nhu cầu thiết yếu."
+            },
+            {
+                id: 2,
+                name: "Nhà hàng Huyền Hậu",
+                type: "food",
+                distance: 85,
+                time: "1.5 giờ",
+                price: "Không rõ",
+                hours: "08:00 - 22:00",
+                rating: "Không rõ",
+                highlight: "Trạm dừng chân lớn, bãi đậu xe rộng rãi, phù hợp gia đình.",
+                description: "Tọa lạc tại QL20, Xuân Thạnh, Thống Nhất, Đồng Nai, vị trí này rất chiến lược, nằm ngay sau khi rời cao tốc Long Thành - Dầu Giây. Đây là một điểm dừng lý tưởng cho bữa sáng muộn hoặc bữa trưa sớm. Điểm nổi bật là quy mô lớn và có bãi đậu xe rộng rãi, cực kỳ thuận tiện cho ô tô. Đây là điểm dừng đáng tin cậy thay thế cho trạm nghỉ không chắc chắn trên cao tốc Dầu Giây-Phan Thiết."
+            },
+            {
+                id: 3,
+                name: "Cơm niêu LaHa",
+                type: "food",
+                distance: 150,
+                time: "3 giờ",
+                price: "Không rõ",
+                hours: "10:00 - 22:00",
+                rating: "Không rõ",
+                highlight: "Món cơm niêu truyền thống, phù hợp bữa ăn gia đình.",
+                description: "Nằm tại 198 QL55, Tân Thiện, Hàm Tân, Bình Thuận, đây là một điểm dừng chân lý tưởng trên cung đường QL55, rất phù hợp cho bữa trưa. Việc quán chuyên về cơm niêu cho thấy đây là một lựa chọn bữa ăn truyền thống, quen thuộc và phù hợp với khẩu vị của nhiều gia đình, giúp phá vỡ hành trình dài và tối ưu hóa trải nghiệm di chuyển."
+            },
+            {
+                id: 4,
+                name: "Sumi Đami Homestay Coffee",
+                type: "drink",
+                distance: 180,
+                time: "3.5 giờ",
+                price: "Không rõ",
+                hours: "Không rõ",
+                rating: "9.3/10 (từ 6 reviews)",
+                highlight: "Không gian cà phê yên bình, view đẹp, có chỗ đậu xe, không khí trong lành.",
+                description: "Tọa lạc tại QL55, Đa Mi, Hàm Thuận Bắc, Bình Thuận, đây là một điểm dừng độc đáo và thư giãn giữa hành trình. Quán cà phê này nổi bật với không gian yên bình và có 'view đẹp', mang đến cơ hội hít thở không khí trong lành. Đây là một lựa chọn tuyệt vời cho gia đình muốn tìm kiếm sự yên tĩnh và tận hưởng cảnh quan sau một đoạn đường dài."
+            },
+            {
+                id: 5,
+                name: "Cơm niêu Thuận Kiều",
+                type: "food",
+                distance: 240,
+                time: "4.5 giờ",
+                price: "45.000 - 130.000 VNĐ",
+                hours: "Không rõ",
+                rating: "4.5/5",
+                highlight: "Sạch sẽ, đồ ăn ngon, giá hợp lý, chỗ đậu xe thoải mái, phục vụ nhanh, có chuối & trà đá miễn phí.",
+                description: "Tọa lạc tại 1243 QL20, Đại Lào, Bảo Lộc, đây là điểm dừng chân chính trên QL20. Quán nhận được đánh giá rất cao về sự 'sạch sẽ, đồ ăn ngon, giá cả hợp lý'. Các món ăn được yêu thích gồm cá suối chiên giòn, tép ram. Một điểm cộng lớn là quán có 'chỗ đậu xe thoải mái' và dịch vụ ân cần, nhanh chóng, mang lại cảm giác như 'cơm nhà'."
+            },
+            {
+                id: 6,
+                name: "Phạm's Garden Coffee",
+                type: "drink",
+                distance: 245,
+                time: "4.5 giờ",
+                price: "Từ 12.000 VNĐ",
+                hours: "07:00 - 22:00",
+                rating: "Nổi bật cho gia đình",
+                highlight: "Không gian xanh mát, **có khu vui chơi trẻ em**, thực đơn đồ uống phong phú.",
+                description: "Nằm tại Số 39 Nguyễn Bỉnh Khiêm, TP Bảo Lộc, đây là điểm dừng chân lý tưởng. Điểm nổi bật nhất là không gian sân vườn xanh mát và đặc biệt là sự hiện diện của khu vui chơi trẻ em. Đây là tiện ích cực kỳ quan trọng, giúp trẻ giải tỏa năng lượng sau thời gian dài ngồi xe, đảm bảo sự thoải mái cho cả gia đình."
+            },
+            {
+                id: 7,
+                name: "Tà Hine Café",
+                type: "drink",
+                distance: 290,
+                time: "5.5 giờ",
+                price: "35.000 - 50.000 VNĐ",
+                hours: "07:00 - 22:00",
+                rating: "4.3/5",
+                highlight: "View hướng hồ Đại Ninh thơ mộng, không gian yên bình, thích hợp thư giãn và ngắm cảnh.",
+                description: "Nằm gần ngã 3 Tà Hine, Đức Trọng, điểm đặc biệt của quán là 'view hướng ra hồ Đại Ninh thơ mộng', tạo không gian yên bình và đẹp nao lòng. Đây là một lựa chọn lý tưởng để kết thúc hành trình một cách thoải mái, cho phép gia đình có những khoảnh khắc thư giãn và chụp ảnh đẹp trước khi đến Đà Lạt."
+            },
+            {
+                id: 8,
+                name: "Cơm Hiền Linh",
+                type: "food",
+                distance: 290,
+                time: "5.5 giờ",
+                price: "150.000 - 250.000 VNĐ",
+                hours: "08:00 - 20:00",
+                rating: "4.5/5",
+                highlight: "Cơm phần đa dạng, giá bình dân, không gian sạch đẹp, thoáng mát.",
+                description: "Tọa lạc tại 400 QL20, Liên Nghĩa, Đức Trọng, đây là điểm dừng chân lý tưởng cho bữa ăn cuối cùng trước khi tới Đà Lạt. Quán nổi bật với thực đơn cơm phần đa dạng, chất lượng món ăn được đánh giá cao trong khi giá cả lại rất bình dân. Không gian quán sạch đẹp và thoáng mát, nhận được đánh giá 4.5/5 từ cộng đồng."
+            },
+            {
+                id: 9,
+                name: "Bún cá Nha Trang Cô Mai",
+                type: "food",
+                distance: 295,
+                time: "5.5 giờ",
+                price: "Không rõ",
+                hours: "06:00 - 11:00",
+                rating: "Được yêu thích",
+                highlight: "Hương vị bún cá chuẩn Nha Trang, nước dùng thanh ngọt tự nhiên, không gian sạch sẽ.",
+                description: "Nằm tại 85 An Hiệp, Liên Hiệp, Đức Trọng, chỉ cách sân bay Liên Khương khoảng 2km. Quán được yêu thích nhờ hương vị bún cá chuẩn Nha Trang, với nước dùng ngọt thanh tự nhiên, không sử dụng bột ngọt. Đây là lựa chọn tuyệt vời cho bữa ăn nhẹ hoặc bữa sáng/trưa muộn trước khi kết thúc hành trình."
+            },
+            {
+                id: 10,
+                name: "Cà phê Ngọc Ngân",
+                type: "drink",
+                distance: 295,
+                time: "5.5 giờ",
+                price: "Không rõ",
+                hours: "Không rõ",
+                rating: "'Điểm dừng tuyệt vời'",
+                highlight: "Không gian rộng rãi, thoáng đãng, gần khu vui chơi trẻ em Kid's World.",
+                description: "Tọa lạc tại Cầu Cao Thái, Liên Nghĩa, Đức Trọng, đây là một điểm dừng chân thuận tiện trước khi vào trung tâm Đà Lạt. Quán được đánh giá cao về không gian rộng rãi, thoáng đãng. Một lợi thế lớn cho gia đình là quán 'gần khu vui chơi trẻ em Kid's World', mang đến thêm lựa chọn giải trí cho các bé."
+            }
+        ];
+
+        const stopsList = document.getElementById('stops-list');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modal-content');
+
+        function createStopCard(stop) {
+            const card = document.createElement('div');
+            card.className = `stop-card bg-white p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl hover:scale-105 ${stop.type}`;
+            card.dataset.id = stop.id;
+
+            const typeIcon = stop.type === 'food' ? '🍴' : '☕️';
+            const typeText = stop.type === 'food' ? 'Ăn uống' : 'Nghỉ ngơi';
+            const typeColor = stop.type === 'food' ? 'text-amber-600' : 'text-blue-600';
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-lg">${stop.name}</h3>
+                        <p class="text-sm ${typeColor} font-semibold">${typeIcon} ${typeText}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-teal-dark">${stop.distance} km</p>
+                        <p class="text-sm text-gray-500">~ ${stop.time}</p>
+                    </div>
+                </div>
+                <p class="text-gray-600 mt-2 text-sm">${stop.highlight}</p>
+            `;
+            card.addEventListener('click', () => openModal(stop.id));
+            return card;
+        }
+
+        function renderStops(filter = 'all') {
+            stopsList.innerHTML = '';
+            const filteredData = filter === 'all' ? stopsData : stopsData.filter(s => s.type === filter);
+            filteredData.forEach(stop => {
+                stopsList.appendChild(createStopCard(stop));
+            });
+        }
+
+        function openModal(id) {
+            const stop = stopsData.find(s => s.id === id);
+            if (!stop) return;
+
+            const typeIcon = stop.type === 'food' ? '🍴' : '☕️';
+            const typeText = stop.type === 'food' ? 'Ăn uống' : 'Nghỉ ngơi';
+            const typeColor = stop.type === 'food' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800';
+            const ratingColor = parseFloat(stop.rating) >= 4.5 || stop.rating.includes('tuyệt vời') || stop.rating.includes('yêu thích') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+
+            modalContent.innerHTML = `
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-teal-dark">${stop.name}</h2>
+                        <button id="close-modal" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-4 text-xs">
+                        <span class="px-2 py-1 rounded-full ${typeColor} font-medium">${typeIcon} ${typeText}</span>
+                        <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-800 font-medium">📍 ${stop.distance} km</span>
+                        <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-800 font-medium">⏰ ${stop.hours}</span>
+                        <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-800 font-medium">💰 ${stop.price}</span>
+                        <span class="px-2 py-1 rounded-full ${ratingColor} font-medium">⭐ ${stop.rating}</span>
+                    </div>
+                    <p class="text-gray-700 leading-relaxed">${stop.description}</p>
+                </div>
+            `;
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-95');
+            document.body.style.overflow = 'hidden';
+
+            document.getElementById('close-modal').addEventListener('click', closeModal);
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modalContent.classList.add('scale-95');
+            document.body.style.overflow = 'auto';
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") closeModal();
+        });
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const filter = btn.dataset.filter;
+                renderStops(filter);
+
+                filterBtns.forEach(b => {
+                    b.classList.remove('bg-muted-teal', 'text-white');
+                    b.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300');
+                });
+                btn.classList.add('bg-muted-teal', 'text-white');
+                btn.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-300');
+            });
+        });
+
+        const ctx = document.getElementById('journeyChart').getContext('2d');
+        const journeyChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Điểm Ăn Uống',
+                    data: stopsData.filter(s => s.type === 'food').map(s => ({ x: s.distance, y: 1, name: s.name })),
+                    backgroundColor: '#F59E0B',
+                    borderColor: '#D97706',
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                }, {
+                    label: 'Điểm Nghỉ Ngơi',
+                    data: stopsData.filter(s => s.type === 'drink').map(s => ({ x: s.distance, y: 1, name: s.name })),
+                    backgroundColor: '#3B82F6',
+                    borderColor: '#2563EB',
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.raw.name;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        min: 0,
+                        max: 330,
+                        title: {
+                            display: true,
+                            text: 'Quãng đường (km)'
+                        }
+                    },
+                    y: {
+                        display: false,
+                        min: 0,
+                        max: 2
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('load', () => {
+            renderStops();
+        });
+    </script>
+</body>
+</html>
