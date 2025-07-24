@@ -3,17 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chuyến Đi: TP.HCM – Đà Lạt</title>
+    <title>Cẩm Nang Chuyến Đi: TP.HCM – Đà Lạt</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS for OpenStreetMap -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzxH+vSyHch+eQpPyDfRVsCSXg=" crossorigin="" />
+    <!-- Leaflet JavaScript for OpenStreetMap -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-p4NxAoJBhIIN+hmNHrzxH+vSyHch+eQpPyDfRVsCSXg=" crossorigin=""></script>
     <!-- Chosen Palette: Warm Sandstone & Muted Teal -->
-    <!-- Application Structure Plan: The application is designed as a "Trip Dashboard" for intuitive, non-linear exploration. It starts with a high-level overview (route diagram, key stats, critical warning), moves to an interactive "Stop Explorer" with filtering (All/Food/Drink), provides a "Journey Visualizer" (Chart.js timeline) to show stop distribution, and concludes with collapsible "Essential Tips". This task-oriented structure is more user-friendly for a traveler than a linear report, allowing quick access to the most relevant information at any stage of their journey. -->
+    <!-- Application Structure Plan: The application is designed as a "Trip Dashboard" for intuitive, non-linear exploration. It starts with a high-level overview (route diagram, key stats, critical warning), moves to an interactive "Stop Explorer" with filtering (All/Food/Drink), provides a "Journey Visualizer" (Chart.js timeline) to show stop distribution, and concludes with collapsible "Essential Tips". This task-oriented structure is more user-friendly for a traveler than a linear report, allowing quick access to the most relevant information at any stage of their journey. A new "Route Map" section is added for geographical visualization using Leaflet/OSM. -->
     <!-- Visualization & Content Choices: 
         - Route Diagram: Goal: Inform/Orient. Method: HTML/CSS divs styled with Tailwind. Justification: A simple, non-SVG visual to quickly understand the main segments of the trip.
         - Key Stats Cards: Goal: Inform. Method: HTML/CSS. Justification: Highlights critical trip data (distance, time) for fast consumption.
+        - Route Map: Goal: Visualize Route & Stops. Method: Leaflet.js with OpenStreetMap tiles, Polyline, and Markers. Justification: Provides a clear geographical context for the entire journey and the precise locations of stops, enhancing user understanding and navigation, without requiring an API key.
         - Stop Explorer: Goal: Organize/Explore. Method: JS-powered filterable cards. Justification: Allows users to dynamically filter stops based on their immediate need (food or rest), which is a core task.
         - Journey Timeline Chart: Goal: Visualize Distribution. Method: Chart.js Scatter Plot. Justification: Visually represents the report's data on how stops are spread across the 324km journey, directly addressing a key user requirement.
         - Essential Tips Accordion: Goal: Organize. Method: HTML <details> tag. Justification: Hides detailed text by default, keeping the UI clean and reducing cognitive load.
@@ -43,6 +48,16 @@
             .chart-container {
                 height: 300px;
                 max-height: 350px;
+            }
+        }
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 0.5rem;
+        }
+        @media (min-width: 768px) {
+            #map {
+                height: 500px;
             }
         }
         .stop-card {
@@ -116,6 +131,16 @@
             </div>
         </section>
 
+        <section id="route-map" class="mb-12">
+            <h2 class="text-2xl font-bold text-center mb-6 text-teal-dark">Bản Đồ Hành Trình & Điểm Dừng</h2>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <p class="text-gray-700 mb-6 text-center">
+                    Bản đồ dưới đây hiển thị lộ trình từ TP.HCM đến Đà Lạt cùng với vị trí của tất cả các điểm dừng chân được đề xuất. Bạn có thể tương tác với bản đồ để phóng to, thu nhỏ và khám phá chi tiết hơn.
+                </p>
+                <div id="map"></div>
+            </div>
+        </section>
+
         <section id="journey-visualizer" class="mb-12">
             <h2 class="text-2xl font-bold text-center mb-6 text-teal-dark">Trực Quan Hóa Các Điểm Dừng</h2>
             <div class="bg-white p-6 rounded-lg shadow-lg">
@@ -135,9 +160,9 @@
                     Đây là danh sách chi tiết các điểm ăn uống và nghỉ ngơi đã được lựa chọn kỹ lưỡng. Sử dụng các nút bên dưới để lọc danh sách theo nhu cầu của bạn. Nhấp vào từng điểm để xem thông tin chi tiết, giúp bạn đưa ra lựa chọn phù hợp nhất tại mỗi chặng của hành trình.
                 </p>
                 <div class="flex justify-center space-x-2 mb-8">
-                    <button data-filter="all" class="filter-btn bg-muted-teal text-white font-semibold py-2 px-4 rounded-full">Tất cả (10)</button>
-                    <button data-filter="food" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full border border-gray-300">Ăn uống (5)</button>
-                    <button data-filter="drink" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full border border-gray-300">Nghỉ ngơi (5)</button>
+                    <button data-filter="all" class="filter-btn bg-muted-teal text-white font-semibold py-2 px-4 rounded-full">Tất cả (14)</button>
+                    <button data-filter="food" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full border border-gray-300">Ăn uống (7)</button>
+                    <button data-filter="drink" class="filter-btn bg-white text-gray-700 font-semibold py-2 px-4 rounded-full border border-gray-300">Nghỉ ngơi (7)</button>
                 </div>
 
                 <div id="stops-list" class="space-y-4">
@@ -175,6 +200,7 @@
 
     <footer class="mt-12 py-6 bg-warm-beige text-center text-gray-600">
         <p>Chúc gia đình bạn có một chuyến đi an toàn và đầy ắp niềm vui!</p>
+        <p class="text-sm mt-1">Cẩm nang được tạo bởi AI dựa trên dữ liệu bạn cung cấp.</p>
     </footer>
 
     <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
@@ -194,7 +220,9 @@
                 hours: "24/7 (thường lệ)",
                 rating: "Thường rất đông khách",
                 highlight: "Điểm dừng thiết yếu trên cao tốc, nhà vệ sinh sạch, bãi đậu xe rộng, đa dạng đồ uống.",
-                description: "Đây là điểm dừng chân thiết yếu đầu tiên trên cao tốc, thường là sau khoảng 1-1.5 giờ di chuyển từ TP.HCM. Trạm được trang bị nhà vệ sinh sạch sẽ và có bãi đậu xe rộng lớn, rất thuận tiện. Tuy nhiên, cần lưu ý rằng trạm này thường rất đông khách, đặc biệt vào các dịp lễ. Gia đình nên chuẩn bị tinh thần chờ đợi hoặc chỉ dừng nhanh để giải quyết các nhu cầu thiết yếu."
+                description: "Đây là điểm dừng chân thiết yếu đầu tiên trên cao tốc, thường là sau khoảng 1-1.5 giờ di chuyển từ TP.HCM. Trạm được trang bị nhà vệ sinh sạch sẽ và có bãi đậu xe rộng lớn, rất thuận tiện. Tuy nhiên, cần lưu ý rằng trạm này thường rất đông khách, đặc biệt vào các dịp lễ. Gia đình nên chuẩn bị tinh thần chờ đợi hoặc chỉ dừng nhanh để giải quyết các nhu cầu thiết yếu.",
+                lat: 10.8667,
+                lng: 106.9167
             },
             {
                 id: 2,
@@ -206,7 +234,9 @@
                 hours: "08:00 - 22:00",
                 rating: "Không rõ",
                 highlight: "Trạm dừng chân lớn, bãi đậu xe rộng rãi, phù hợp gia đình.",
-                description: "Tọa lạc tại QL20, Xuân Thạnh, Thống Nhất, Đồng Nai, vị trí này rất chiến lược, nằm ngay sau khi rời cao tốc Long Thành - Dầu Giây. Đây là một điểm dừng lý tưởng cho bữa sáng muộn hoặc bữa trưa sớm. Điểm nổi bật là quy mô lớn và có bãi đậu xe rộng rãi, cực kỳ thuận tiện cho ô tô. Đây là điểm dừng đáng tin cậy thay thế cho trạm nghỉ không chắc chắn trên cao tốc Dầu Giây-Phan Thiết."
+                description: "Tọa lạc tại QL20, Xuân Thạnh, Thống Nhất, Đồng Nai, vị trí này rất chiến lược, nằm ngay sau khi rời cao tốc Long Thành - Dầu Giây. Đây là một điểm dừng lý tưởng cho bữa sáng muộn hoặc bữa trưa sớm. Điểm nổi bật là quy mô lớn và có bãi đậu xe rộng rãi, cực kỳ thuận tiện cho ô tô. Đây là điểm dừng đáng tin cậy thay thế cho trạm nghỉ không chắc chắn trên cao tốc Dầu Giây-Phan Thiết.",
+                lat: 10.95,
+                lng: 107.05
             },
             {
                 id: 3,
@@ -218,7 +248,9 @@
                 hours: "10:00 - 22:00",
                 rating: "Không rõ",
                 highlight: "Món cơm niêu truyền thống, phù hợp bữa ăn gia đình.",
-                description: "Nằm tại 198 QL55, Tân Thiện, Hàm Tân, Bình Thuận, đây là một điểm dừng chân lý tưởng trên cung đường QL55, rất phù hợp cho bữa trưa. Việc quán chuyên về cơm niêu cho thấy đây là một lựa chọn bữa ăn truyền thống, quen thuộc và phù hợp với khẩu vị của nhiều gia đình, giúp phá vỡ hành trình dài và tối ưu hóa trải nghiệm di chuyển."
+                description: "Nằm tại 198 QL55, Tân Thiện, Hàm Tân, Bình Thuận, đây là một điểm dừng chân lý tưởng trên cung đường QL55, rất phù hợp cho bữa trưa. Việc quán chuyên về cơm niêu cho thấy đây là một lựa chọn bữa ăn truyền thống, quen thuộc và phù hợp với khẩu vị của nhiều gia đình, giúp phá vỡ hành trình dài và tối ưu hóa trải nghiệm di chuyển.",
+                lat: 10.95,
+                lng: 107.75
             },
             {
                 id: 4,
@@ -230,7 +262,23 @@
                 hours: "Không rõ",
                 rating: "9.3/10 (từ 6 reviews)",
                 highlight: "Không gian cà phê yên bình, view đẹp, có chỗ đậu xe, không khí trong lành.",
-                description: "Tọa lạc tại QL55, Đa Mi, Hàm Thuận Bắc, Bình Thuận, đây là một điểm dừng độc đáo và thư giãn giữa hành trình. Quán cà phê này nổi bật với không gian yên bình và có 'view đẹp', mang đến cơ hội hít thở không khí trong lành. Đây là một lựa chọn tuyệt vời cho gia đình muốn tìm kiếm sự yên tĩnh và tận hưởng cảnh quan sau một đoạn đường dài."
+                description: "Tọa lạc tại QL55, Đa Mi, Hàm Thuận Bắc, Bình Thuận, đây là một điểm dừng độc đáo và thư giãn giữa hành trình. Quán cà phê này nổi bật với không gian yên bình và có 'view đẹp', mang đến cơ hội hít thở không khí trong lành. Đây là một lựa chọn tuyệt vời cho gia đình muốn tìm kiếm sự yên tĩnh và tận hưởng cảnh quan sau một đoạn đường dài.",
+                lat: 11.20,
+                lng: 108.10
+            },
+            {
+                id: 11,
+                name: "Cafe võng hương rừng",
+                type: "drink",
+                distance: 190,
+                time: "3.5 - 4 giờ",
+                price: "Không rõ",
+                hours: "Không rõ",
+                rating: "Không rõ",
+                highlight: "Quán cà phê võng thư giãn, không gian yên bình trên QL55 Đa Mi.",
+                description: "Nằm trong khu vực Đa Mi yên bình, đây là một điểm dừng chân lý tưởng để thư giãn và nghỉ ngơi sau một chặng đường dài. Với mô hình 'cà phê võng', quán mang đến không gian thoải mái, giúp du khách có thể ngả lưng, hít thở không khí trong lành và tận hưởng sự yên tĩnh của thiên nhiên.",
+                lat: 11.25,
+                lng: 108.05
             },
             {
                 id: 5,
@@ -242,7 +290,23 @@
                 hours: "Không rõ",
                 rating: "4.5/5",
                 highlight: "Sạch sẽ, đồ ăn ngon, giá hợp lý, chỗ đậu xe thoải mái, phục vụ nhanh, có chuối & trà đá miễn phí.",
-                description: "Tọa lạc tại 1243 QL20, Đại Lào, Bảo Lộc, đây là điểm dừng chân chính trên QL20. Quán nhận được đánh giá rất cao về sự 'sạch sẽ, đồ ăn ngon, giá cả hợp lý'. Các món ăn được yêu thích gồm cá suối chiên giòn, tép ram. Một điểm cộng lớn là quán có 'chỗ đậu xe thoải mái' và dịch vụ ân cần, nhanh chóng, mang lại cảm giác như 'cơm nhà'."
+                description: "Tọa lạc tại 1243 QL20, Đại Lào, Bảo Lộc, đây là điểm dừng chân chính trên QL20. Quán nhận được đánh giá rất cao về sự 'sạch sẽ, đồ ăn ngon, giá cả hợp lý'. Các món ăn được yêu thích gồm cá suối chiên giòn, tép ram. Một điểm cộng lớn là quán có 'chỗ đậu xe thoải mái' và dịch vụ ân cần, nhanh chóng, mang lại cảm giác như 'cơm nhà'.",
+                lat: 11.55,
+                lng: 107.78
+            },
+            {
+                id: 12,
+                name: "Bún Riêu O Lan",
+                type: "food",
+                distance: 242,
+                time: "4.5 giờ",
+                price: "25.000 - 30.000 VNĐ",
+                hours: "Không rõ (thường mở sáng/trưa)",
+                rating: "Được yêu thích",
+                highlight: "Bún riêu cua đậm đà, đầy đặn, giá cả phải chăng.",
+                description: "Đây là một địa chỉ nổi tiếng tại Bảo Lộc, rất phù hợp cho bữa sáng hoặc bữa trưa nhẹ nhàng. Quán được biết đến với món bún riêu cua đậm đà, với tô bún đầy đặn bao gồm mọc, riêu cua, đậu hũ, huyết và giò heo. Quán thường đông khách nhưng phục vụ nhanh chóng.",
+                lat: 11.55,
+                lng: 107.80
             },
             {
                 id: 6,
@@ -254,7 +318,37 @@
                 hours: "07:00 - 22:00",
                 rating: "Nổi bật cho gia đình",
                 highlight: "Không gian xanh mát, **có khu vui chơi trẻ em**, thực đơn đồ uống phong phú.",
-                description: "Nằm tại Số 39 Nguyễn Bỉnh Khiêm, TP Bảo Lộc, đây là điểm dừng chân lý tưởng. Điểm nổi bật nhất là không gian sân vườn xanh mát và đặc biệt là sự hiện diện của khu vui chơi trẻ em. Đây là tiện ích cực kỳ quan trọng, giúp trẻ giải tỏa năng lượng sau thời gian dài ngồi xe, đảm bảo sự thoải mái cho cả gia đình."
+                description: "Nằm tại Số 39 Nguyễn Bỉnh Khiêm, TP Bảo Lộc, đây là điểm dừng chân lý tưởng. Điểm nổi bật nhất là không gian sân vườn xanh mát và đặc biệt là sự hiện diện của khu vui chơi trẻ em. Đây là tiện ích cực kỳ quan trọng, giúp trẻ giải tỏa năng lượng sau thời gian dài ngồi xe, đảm bảo sự thoải mái cho cả gia đình.",
+                lat: 11.54,
+                lng: 107.79
+            },
+            {
+                id: 13,
+                name: "Nhà Hàng Đại Nam Việt",
+                type: "food",
+                distance: 265,
+                time: "5 giờ",
+                price: "Không rõ",
+                hours: "Không rõ",
+                rating: "Không gian độc đáo",
+                highlight: "Kiến trúc nhà rông Jrai, không gian mở, đặc sản địa phương.",
+                description: "Nhà hàng được xây dựng theo mô hình nhà rông của người Jrai, mang đến không gian mở, đẹp, sạch sẽ và thoáng mát. Thực đơn của quán phong phú với nhiều món đặc sản địa phương. Đặc biệt, nhà hàng còn có một trung tâm mua sắm đặc sản ngay bên cạnh.",
+                lat: 11.69,
+                lng: 108.00
+            },
+            {
+                id: 14,
+                name: "Trạm Dừng Chân Du Lịch Lê Sáng",
+                type: "drink",
+                distance: 280,
+                time: "5.5 giờ",
+                price: "Không rõ",
+                hours: "Không rõ",
+                rating: "'Đẹp nhất tuyến QL20'",
+                highlight: "Không gian lãng mạn với tông màu tím, điểm check-in lý tưởng.",
+                description: "Được đánh giá là một trong những trạm dừng chân đẹp nhất trên tuyến QL20, với tông màu chủ đạo là màu tím của những bông hoa, tạo nên một không gian vô cùng lãng mạn. Đây là nơi tuyệt vời để gia đình nghỉ ngơi, thư giãn và chụp những bức ảnh đẹp trước khi đến đích.",
+                lat: 11.79,
+                lng: 108.15
             },
             {
                 id: 7,
@@ -266,7 +360,9 @@
                 hours: "07:00 - 22:00",
                 rating: "4.3/5",
                 highlight: "View hướng hồ Đại Ninh thơ mộng, không gian yên bình, thích hợp thư giãn và ngắm cảnh.",
-                description: "Nằm gần ngã 3 Tà Hine, Đức Trọng, điểm đặc biệt của quán là 'view hướng ra hồ Đại Ninh thơ mộng', tạo không gian yên bình và đẹp nao lòng. Đây là một lựa chọn lý tưởng để kết thúc hành trình một cách thoải mái, cho phép gia đình có những khoảnh khắc thư giãn và chụp ảnh đẹp trước khi đến Đà Lạt."
+                description: "Nằm gần ngã 3 Tà Hine, Đức Trọng, điểm đặc biệt của quán là 'view hướng ra hồ Đại Ninh thơ mộng', tạo không gian yên bình và đẹp nao lòng. Đây là một lựa chọn lý tưởng để kết thúc hành trình một cách thoải mái, cho phép gia đình có những khoảnh khắc thư giãn và chụp ảnh đẹp trước khi đến Đà Lạt.",
+                lat: 11.85,
+                lng: 108.20
             },
             {
                 id: 8,
@@ -278,7 +374,9 @@
                 hours: "08:00 - 20:00",
                 rating: "4.5/5",
                 highlight: "Cơm phần đa dạng, giá bình dân, không gian sạch đẹp, thoáng mát.",
-                description: "Tọa lạc tại 400 QL20, Liên Nghĩa, Đức Trọng, đây là điểm dừng chân lý tưởng cho bữa ăn cuối cùng trước khi tới Đà Lạt. Quán nổi bật với thực đơn cơm phần đa dạng, chất lượng món ăn được đánh giá cao trong khi giá cả lại rất bình dân. Không gian quán sạch đẹp và thoáng mát, nhận được đánh giá 4.5/5 từ cộng đồng."
+                description: "Tọa lạc tại 400 QL20, Liên Nghĩa, Đức Trọng, đây là điểm dừng chân lý tưởng cho bữa ăn cuối cùng trước khi tới Đà Lạt. Quán nổi bật với thực đơn cơm phần đa dạng, chất lượng món ăn được đánh giá cao trong khi giá cả lại rất bình dân. Không gian quán sạch đẹp và thoáng mát, nhận được đánh giá 4.5/5 từ cộng đồng.",
+                lat: 11.88,
+                lng: 108.25
             },
             {
                 id: 9,
@@ -290,7 +388,9 @@
                 hours: "06:00 - 11:00",
                 rating: "Được yêu thích",
                 highlight: "Hương vị bún cá chuẩn Nha Trang, nước dùng thanh ngọt tự nhiên, không gian sạch sẽ.",
-                description: "Nằm tại 85 An Hiệp, Liên Hiệp, Đức Trọng, chỉ cách sân bay Liên Khương khoảng 2km. Quán được yêu thích nhờ hương vị bún cá chuẩn Nha Trang, với nước dùng ngọt thanh tự nhiên, không sử dụng bột ngọt. Đây là lựa chọn tuyệt vời cho bữa ăn nhẹ hoặc bữa sáng/trưa muộn trước khi kết thúc hành trình."
+                description: "Nằm tại 85 An Hiệp, Liên Hiệp, Đức Trọng, chỉ cách sân bay Liên Khương khoảng 2km. Quán được yêu thích nhờ hương vị bún cá chuẩn Nha Trang, với nước dùng ngọt thanh tự nhiên, không sử dụng bột ngọt. Đây là lựa chọn tuyệt vời cho bữa ăn nhẹ hoặc bữa sáng/trưa muộn trước khi kết thúc hành trình.",
+                lat: 11.90,
+                lng: 108.28
             },
             {
                 id: 10,
@@ -302,7 +402,9 @@
                 hours: "Không rõ",
                 rating: "'Điểm dừng tuyệt vời'",
                 highlight: "Không gian rộng rãi, thoáng đãng, gần khu vui chơi trẻ em Kid's World.",
-                description: "Tọa lạc tại Cầu Cao Thái, Liên Nghĩa, Đức Trọng, đây là một điểm dừng chân thuận tiện trước khi vào trung tâm Đà Lạt. Quán được đánh giá cao về không gian rộng rãi, thoáng đãng. Một lợi thế lớn cho gia đình là quán 'gần khu vui chơi trẻ em Kid's World', mang đến thêm lựa chọn giải trí cho các bé."
+                description: "Tọa lạc tại Cầu Cao Thái, Liên Nghĩa, Đức Trọng, đây là một điểm dừng chân thuận tiện trước khi vào trung tâm Đà Lạt. Quán được đánh giá cao về không gian rộng rãi, thoáng đãng. Một lợi thế lớn cho gia đình là quán 'gần khu vui chơi trẻ em Kid's World', mang đến thêm lựa chọn giải trí cho các bé.",
+                lat: 11.92,
+                lng: 108.30
             }
         ];
 
@@ -339,7 +441,8 @@
 
         function renderStops(filter = 'all') {
             stopsList.innerHTML = '';
-            const filteredData = filter === 'all' ? stopsData : stopsData.filter(s => s.type === filter);
+            const sortedData = [...stopsData].sort((a, b) => a.distance - b.distance);
+            const filteredData = filter === 'all' ? sortedData : sortedData.filter(s => s.type === filter);
             filteredData.forEach(stop => {
                 stopsList.appendChild(createStopCard(stop));
             });
@@ -438,7 +541,7 @@
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return context.raw.name;
+                                return `${context.raw.name} (${context.raw.x}km)`;
                             }
                         }
                     }
@@ -464,8 +567,9 @@
         });
 
         window.addEventListener('load', () => {
-            renderStops();
-        });
+    renderStops();
+});
     </script>
+    <script src="map.js"></script>
 </body>
 </html>
